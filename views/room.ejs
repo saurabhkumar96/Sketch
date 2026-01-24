@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/room.css">
+</head>
+
+<body>
+    <div class="container ">
+        <canvas id="board" width="1000px" height="500px" style="background-color: aquamarine;"></canvas>
+        <h1 id="roomIdBtn"></h1>
+    </div>
+    <div class="container-btn">
+        <button id="clearBtn">Clear</button>
+        <button id="saveBtn">Save</button>
+        <!-- <button id="createRoom">Create Room</button> -->
+        <button id="homeBtn">home</button>
+        <button id="copyLink">Copy Link</button>
+    </div>
+
+    <div class="webrtc_container">
+        <video id="localVideo" style="border: 2px solid red;" width="250px" height="242px" autoplay muted playsinline></video>
+        <video id="remoteVideo" style="border: 2px solid red;" width="250px" height="242px" autoplay playsinline></video>
+
+        <!-- Controls -->
+        <button id="startCall">Start Call</button>
+        <button id="toggleMic">Mic</button>
+        <button id="toggleCam">Cam</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/room.js"></script>
+</body>
+
+</html>
