@@ -1,6 +1,10 @@
 const express = require("express");
+const dotenv = require("dotenv").config();
+const db = require("./config/db")();
 const http = require("http");
 const { Server } = require("socket.io");
+const Session = require("./model/session.model")
+const ActivityLog = require("./model/activity.model")
 
 const app = express();
 app.use(express.json());
@@ -27,51 +31,99 @@ const rooms = new Map()
 
 // for socket
 io.on("connection", (socket) => {
-    console.log("a user connected");
+  console.log("a user connected");
 
-    
-//   join room
-  socket.on("join-room" , (roomId)=>{   
-    if(!roomId) return 
+
+  //   join room
+  socket.on("join-room", async (data) => {
+    const { roomId, screen } = data
+    console.log(screen)
+    if (!roomId) return
 
     socket.join(roomId)
     socket.roomId = roomId
-    
+
+    // 👉 SAVE SESSION (IMPORTANT PART)
+    try {
+      await Session.create({
+        userId: socket.userId || null,  // if login exists
+        sessionId: socket.id,
+        roomId,
+        screen,
+        lastLogin: new Date(),
+        lastActiveAt: new Date()
+      });
+    } catch (err) {
+      console.error("Session save error:", err);
+    }
+
     if (!rooms.has(roomId)) {
-        rooms.set(roomId, [])
+      rooms.set(roomId, [])
     }
     socket.emit("init-canvas", rooms.get(roomId))
   })
 
 
-// draw
-socket.on("draw", (action)=>{
-  // jissme mera code nahi fatega()
-    if(!socket.roomId) return
-
+  // draw
+  socket.on("draw", async (action) => {
+    // jissme mera code nahi fatega()
+    if (!socket.roomId) return
     rooms.get(socket.roomId).push(action)
-    socket.to(socket.roomId).emit("draw",action)
-})
+    socket.to(socket.roomId).emit("draw", action)
+
+    // 👉 ONLY track important events
+    if (action.type === "start" || action.type === "end") {
+
+      const now = Date.now()
+      const lastUpdate = 0
+
+      if(now-lastUpdate > 5000){
+      // update last activity
+        await Session.updateOne(
+          { sessionId: socket.id },
+          { $set: { lastActiveAt: new Date() } }
+        );
+
+      }
+      
+
+      // optional: log activity
+      ActivityLog.create({
+        userId: socket.userId || null,
+        roomId: socket.roomId,
+        action: action.type === "start" ? "DRAW_START" : "DRAW_END",
+        entityType: "CANVAS",
+        metadata: action
+      }).catch(console.error);
+    }
+
+  })
 
 
-// ------------------------------------------------------
-// for webrtc
-socket.on("webrtc-offer", ({ roomId, offer }) => {
-  socket.to(roomId).emit("webrtc-offer", offer)
-})
+  // ------------------------------------------------------
+  // for webrtc
+  socket.on("webrtc-offer", ({ roomId, offer }) => {
+    socket.to(roomId).emit("webrtc-offer", offer)
+  })
 
-socket.on("webrtc-answer", ({ roomId, answer }) => {
-  socket.to(roomId).emit("webrtc-answer", answer)
-})
+  socket.on("webrtc-answer", ({ roomId, answer }) => {
+    socket.to(roomId).emit("webrtc-answer", answer)
+  })
 
-socket.on("webrtc-ice", ({ roomId, candidate }) => {
-  socket.to(roomId).emit("webrtc-ice", candidate)
-})
+  socket.on("webrtc-ice", ({ roomId, candidate }) => {
+    socket.to(roomId).emit("webrtc-ice", candidate)
+  })
 
-// disconnect
+  socket.on("share-screen", (...args) => {
+    socket.to(socket.roomId).emit("share-screen", ...args)
+  })
+
+  // disconnect
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
 });
 
-server.listen(3000);
+server.listen(3000, () => {
+  console.log("listening on http://localhost:3000");
+});

@@ -99,8 +99,12 @@ roomIdBtn.addEventListener("click",()=>{
     alert("room id copied")
 })
 
+const screenData = {
+  width: window.innerWidth,
+  height: window.innerHeight
+};
 if(roomId){
-    socket.emit("join-room", roomId)
+    socket.emit("join-room", {roomId,screen: screenData})
 }else {
   console.log("No room → do not join anything")
 }
@@ -243,3 +247,74 @@ document.getElementById("toggleCam").onclick = () => {
 //   ↓
 // Media flows peer-to-peer
 
+
+
+async function shareScreen() {
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true
+  });
+
+
+    const vid = document.getElementById("screen");
+    vid.srcObject = stream;
+    return {stream, vid}
+  }
+
+
+  const shereScreen = document.getElementById("shareScreen");
+
+  shereScreen.addEventListener("click", async () => {
+    const {stream, vid} = await shareScreen();
+    socket.emit("share-screen", {roomId, stream})
+    console.log("data")
+  })
+
+  socket.on("share-screen", async (stream) => {
+    const vid = document.getElementById("screen");
+    vid.srcObject = stream.stream;
+  })
+
+
+
+  // activity log
+
+  // for load the session
+//   async function loadSession(userId) {
+//     console.log(userId)
+//   try {
+//     const res = await fetch(`/session/${userId}`);
+//     const data = await res.json();
+  
+//     const el = document.getElementById("sessionInfo");
+  
+//     if (data.lastActiveAt) {
+//       el.innerText = "Last active: " + new Date(data.lastActiveAt).toLocaleString();
+//     } else if (data.lastLogin) {
+//       el.innerText = "Last login: " + new Date(data.lastLogin).toLocaleString();
+//     } else {
+//       el.innerText = `Screen: ${data.screen.width}x${data.screen.height}`;
+//     }   
+//   } catch (error) {
+//     console.error(error);
+//   }
+// }
+
+// // for load the logs
+// async function loadLogs(roomId) {
+//   const res = await fetch(`/logs/${roomId}`);
+//   const logs = await res.json();
+
+//   const container = document.getElementById("logs");
+//   container.innerHTML = "";
+
+//   logs.forEach(log => {
+//     const div = document.createElement("div");
+
+//     div.innerText = `${log.action} at ${new Date(log.createdAt).toLocaleTimeString()}`;
+
+//     container.appendChild(div);
+//   });
+// }
+
+// loadSession("USER_ID_HERE");
+// loadLogs(roomId);
