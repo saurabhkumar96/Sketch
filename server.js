@@ -1,5 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv").config();
+const { setServers } = require("node:dns/promises");
+setServers(["1.1.1.1", "8.8.8.8"]);
 const db = require("./config/db")();
 const http = require("http");
 const { Server } = require("socket.io");
@@ -43,7 +45,7 @@ io.on("connection", (socket) => {
     socket.join(roomId)
     socket.roomId = roomId
 
-    // 👉 SAVE SESSION (IMPORTANT PART)
+    
     try {
       await Session.create({
         userId: socket.userId || null,  // if login exists
@@ -71,7 +73,7 @@ io.on("connection", (socket) => {
     rooms.get(socket.roomId).push(action)
     socket.to(socket.roomId).emit("draw", action)
 
-    // 👉 ONLY track important events
+    
     if (action.type === "start" || action.type === "end") {
 
       const now = Date.now()
